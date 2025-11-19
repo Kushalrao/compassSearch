@@ -89,6 +89,6 @@ fastlane/test_output
 
 iOSInjectionProject/
 
-# macOS
-.DS_Store
-
+# API Keys (important!)
+**/APIKeys.swift
+**/Config.swift
