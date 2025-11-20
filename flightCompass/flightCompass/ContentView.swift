@@ -8,6 +8,7 @@
 import SwiftUI
 import CoreLocation
 import MapKit
+import UIKit
 
 extension CLLocationCoordinate2D: @retroactive Equatable {
     public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
@@ -23,12 +24,17 @@ struct ContentView: View {
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var isRotating = false
     @State private var rotationTimer: Task<Void, Never>?
+    @State private var lastHapticHeading: Double = 0
+    private let hapticGenerator = UISelectionFeedbackGenerator()
+    private let hapticThreshold: Double = 5.0 // Trigger haptic every 5 degrees
     
     var body: some View {
         compassView
             .onAppear {
                 // Load airports FIRST
                 AirportService.shared.loadAirports()
+                // Prepare haptic generator for better responsiveness
+                hapticGenerator.prepare()
             }
             .onChange(of: locationManager.currentLocation) { newValue in
                 if let location = newValue {
@@ -168,6 +174,15 @@ struct ContentView: View {
         
         // Set rotating state to true
         isRotating = true
+        
+        // Trigger haptic feedback only when heading changes significantly
+        let headingChange = abs(locationManager.heading - lastHapticHeading)
+        let normalizedChange = min(headingChange, 360 - headingChange) // Handle wrap-around
+        
+        if normalizedChange >= hapticThreshold {
+            hapticGenerator.selectionChanged()
+            lastHapticHeading = locationManager.heading
+        }
         
         // Create new timer to reset after 1 second of stability
         rotationTimer = Task {
